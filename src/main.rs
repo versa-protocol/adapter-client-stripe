@@ -12,8 +12,11 @@ extern crate tracing;
 // use tonic::transport::Server;
 
 mod data_adapter;
+mod encryption;
 mod healthz;
 mod middleware;
+mod model;
+mod protocol;
 mod webhook;
 
 #[tokio::main]

@@ -76,10 +76,22 @@ pub async fn target(
         ));
     };
 
-    // 2. Transform into Versa receipt schema
-    let _receipt = crate::data_adapter::transform_stripe_invoice(invoice);
+    // 2. Transform into the Versa receipt schema
+    let receipt = crate::data_adapter::transform_stripe_invoice(invoice);
+    let sender_client_id = receipt.sender_client_id.clone();
 
     // 3. Encrypt, hash, and register with Versa registry
+    let prepared = crate::encryption::encrypt_and_hash(receipt);
+    let (_envelope, registration) = prepared.to_envelope_and_registration_data();
+    // TODO: Fill this in from invoice payment details
+    let routing_info = crate::model::RoutingInfo {
+        email: None,
+        bin: None,
+        par: None,
+    };
+
+    let _receivers = crate::protocol::register(&sender_client_id, routing_info, registration);
+
     // 4. Send encrypted data to receiver endpoints returned by the registry
     Ok(http::StatusCode::ACCEPTED)
 }
