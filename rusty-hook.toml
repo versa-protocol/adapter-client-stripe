@@ -1,0 +1,6 @@
+[hooks]
+pre-commit = "bash fmt_on_commit.sh"
+post-commit = "echo Commit Successful"
+
+[logging]
+verbose = true
