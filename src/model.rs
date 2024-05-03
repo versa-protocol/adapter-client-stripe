@@ -65,16 +65,28 @@ impl PreparedData {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Default)]
 pub struct RoutingInfo {
-    pub email: Option<String>,
-    pub bin: Option<String>,
-    pub par: Option<String>,
+    pub customer_email: Option<String>,
+    pub authorization_bin: Option<String>,
+    pub authorization_par: Option<String>,
 }
 
-#[derive(Deserialize, Debug)]
+// #[derive(Deserialize, Debug)]
+// pub struct Receiver {
+//     pub address: String,
+//     pub org_id: String,
+//     pub version: String,
+// }
+
+#[derive(Deserialize)]
 pub struct Receiver {
-    pub address: String,
+    pub id: String,
     pub org_id: String,
-    pub version: String,
+    pub handle: String,
+    pub handle_type: String,
+    pub name: String,
+    pub address: String,
+    pub created: i64,
+    pub decommissioned: Option<i64>,
 }

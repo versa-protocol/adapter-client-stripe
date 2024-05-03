@@ -5,7 +5,7 @@ use aes_siv::{
 };
 use json_canon::to_string;
 use rand::Rng;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::json;
 use std::hash::{DefaultHasher, Hash, Hasher};
 

@@ -11,6 +11,7 @@ extern crate tracing;
 // use middleware::RegistryApplicationState;
 // use tonic::transport::Server;
 
+mod config;
 mod data_adapter;
 mod encryption;
 mod healthz;
@@ -22,6 +23,7 @@ mod webhook;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
+    config::validate();
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     info!("Listening on port 8000");
