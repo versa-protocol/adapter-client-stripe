@@ -2,11 +2,14 @@ use axum::extract::Request;
 use axum::http::HeaderMap;
 use stripe::{EventObject, EventType};
 
+use crate::protocol::encrypt_and_send;
+
 pub async fn target(
     headers: HeaderMap,
     request: Request,
 ) -> Result<http::StatusCode, (http::StatusCode, String)> {
     // 0. Extract and validate the event package from Stripe
+
     let Ok(secret) = std::env::var("WEBHOOK_SECRET") else {
         info!("FATAL: Missing config: WEBHOOK_SECRET");
         return Err((
@@ -51,6 +54,7 @@ pub async fn target(
     })?;
 
     // 1. Receive Stripe 'invoice.paid' event
+
     let event =
         stripe::Webhook::construct_event(payload, &signature, &secret).map_err(|error| {
             info!("Error validating Stripe event: {:?}", error);
@@ -77,14 +81,15 @@ pub async fn target(
     };
 
     // 2. Transform into the Versa receipt schema
+
     let customer_email = invoice.customer_email.clone();
     let receipt = crate::data_adapter::transform_stripe_invoice(invoice);
     let sender_client_id = receipt.sender_client_id.clone();
     info!("Received invoice for customer email: {:?}", customer_email);
 
     // 3. Encrypt, hash, and register with Versa registry
-    let prepared = crate::encryption::encrypt_and_hash(receipt);
-    let (_envelope, registration) = prepared.to_envelope_and_registration_data();
+
+    let registration = crate::encryption::generate_key_and_hash(&receipt);
 
     // Authorized receivers subscribed to this email or domain will be returned by the registry
     let routing_info = crate::model::RoutingInfo {
@@ -94,13 +99,34 @@ pub async fn target(
 
     let sender_client_secret = std::env::var("CLIENT_SECRET").unwrap_or_default();
 
-    let _receivers = crate::protocol::register(
+    let receivers = crate::protocol::register(
         &sender_client_id,
         &sender_client_secret,
         routing_info,
-        registration,
-    );
+        &registration,
+    )
+    .await
+    .map_err(|e| {
+        (
+            http::StatusCode::SERVICE_UNAVAILABLE,
+            format!("Registration failed: {:?}", e),
+        )
+    })?;
 
     // 4. Send encrypted data to receiver endpoints returned by the registry
+
+    for receiver in receivers {
+        match encrypt_and_send(&receiver, &sender_client_id, &registration, &receipt).await {
+            Ok(_) => info!("Successfully sent to receiver: {}", receiver.address),
+            Err(e) => {
+                info!("Failed to send to receiver: {:?}", e);
+                return Err((
+                    http::StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to send to receiver: {:?}", e),
+                ));
+            }
+        }
+    }
+
     Ok(http::StatusCode::ACCEPTED)
 }

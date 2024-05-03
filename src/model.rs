@@ -28,14 +28,6 @@ pub struct SenderReceiptHeader {
     pub third_party: Option<ThirdParty>,
 }
 
-#[derive(Debug)]
-pub struct PreparedData {
-    pub encrypted: Vec<u8>,
-    pub hash: u64,
-    pub key: Vec<u8>,
-    pub nonce: Vec<u8>,
-}
-
 #[derive(Debug, Serialize)]
 pub struct Envelope {
     pub encrypted: Vec<u8>,
@@ -47,22 +39,6 @@ pub struct Envelope {
 pub struct RegistrationData {
     pub hash: u64,
     pub key: Vec<u8>,
-}
-
-impl PreparedData {
-    pub fn to_envelope_and_registration_data(self) -> (Envelope, RegistrationData) {
-        (
-            Envelope {
-                encrypted: self.encrypted,
-                hash: self.hash,
-                nonce: self.nonce,
-            },
-            RegistrationData {
-                hash: self.hash,
-                key: self.key,
-            },
-        )
-    }
 }
 
 #[derive(Serialize, Debug, Default)]
