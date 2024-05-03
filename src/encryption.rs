@@ -1,7 +1,6 @@
 use aes_siv::{
     aead::{Aead, KeyInit, OsRng},
-    Aes256SivAead,
-    Nonce, // Or `Aes128SivAead`
+    Aes256SivAead, Nonce,
 };
 use json_canon::to_string;
 use rand::Rng;
@@ -68,35 +67,6 @@ where
         nonce: nonce_bytes.to_vec(),
     }
 }
-
-// pub fn encrypt_and_hash<T>(data: T) -> PreparedData
-// where
-//     T: Serialize,
-// {
-//     let serde_json = json!(data);
-
-//     let canonicalized = match to_string(&serde_json) {
-//         Ok(canonicalized) => canonicalized,
-//         Err(e) => panic!("Error canonicalizing JSON: {}", e),
-//     };
-
-//     let hash = calculate_hash(&canonicalized);
-
-//     let bytekey = Aes256SivAead::generate_key(&mut OsRng);
-//     let cipher = Aes256SivAead::new(&bytekey);
-//     let nonce_bytes = generate_nonce();
-//     let nonce = Nonce::from_slice(&nonce_bytes); // normally, this would be unique to each receiver and included in the message
-//     let encrypted = match cipher.encrypt(nonce, canonicalized.as_bytes()) {
-//         Ok(ciphertext) => ciphertext,
-//         Err(e) => panic!("Error encrypting data: {}", e),
-//     };
-//     PreparedData {
-//         key: bytekey.to_vec(),
-//         hash,
-//         encrypted,
-//         nonce: nonce_bytes.to_vec(),
-//     }
-// }
 
 #[cfg(test)]
 mod encrypt_tests {

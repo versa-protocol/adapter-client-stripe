@@ -103,15 +103,7 @@ where
     };
 
     if res.status().is_success() {
-        // let data: Vec<Receiver> = match res.json().await {
-        //     Ok(val) => val,
-        //     Err(e) => {
-        //         info!("Failed to deserialize due to error: {}", e);
-
-        //         return Err(());
-        //     }
-        // };
-        // return Ok(data);
+        // TODO: process response from each receiver
         return Ok(());
     }
 

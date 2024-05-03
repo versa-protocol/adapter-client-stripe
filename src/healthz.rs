@@ -1,4 +1,3 @@
-// use data_access::model::{receiver::Receiver, transaction::Transaction};
 use serde::Serialize;
 use std::{env, time::SystemTime};
 

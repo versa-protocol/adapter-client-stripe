@@ -1,15 +1,10 @@
 use axum::routing::{get, post};
 use axum::Router;
 use tokio::net::TcpListener;
-// use tower_http::trace::TraceLayer;
-// use tower_request_id::{RequestId, RequestIdLayer};
 use tracing::Level;
 
 #[macro_use]
 extern crate tracing;
-
-// use middleware::RegistryApplicationState;
-// use tonic::transport::Server;
 
 mod config;
 mod data_adapter;
