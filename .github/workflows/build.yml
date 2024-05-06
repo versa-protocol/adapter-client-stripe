@@ -1,0 +1,25 @@
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+
+  build:
+    name: Build
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Build the Docker image
+      run: |
+        docker build . -t test_image:latest
+
+    - name: Upload image
+      uses: ishworkh/container-image-artifact-upload@v1.1.1
+      with:
+        image: "test_image:latest"
+        retention_days: "1"
+
