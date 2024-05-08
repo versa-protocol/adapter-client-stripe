@@ -33,9 +33,11 @@ pub async fn register(
 
     let payload_json = serde_json::to_string(&payload).unwrap();
 
+    let url = format!("{}/http/register", registry_url);
+    info!("Sending registration request to: {}", url);
     let client = reqwest::Client::new();
     let response_result = client
-        .post(format!("{registry_url}/http/register"))
+        .post(url)
         .header("Accept", "application/json")
         .header("Authorization", credential)
         .header("Content-Type", "application/json")
@@ -45,19 +47,24 @@ pub async fn register(
 
     let res = match response_result {
         Ok(res) => res,
-        Err(_) => return Err(()),
+        Err(e) => {
+            info!("Error placing request: {:?}", e);
+            return Err(());
+        }
     };
+    info!("Registration response received");
 
     if res.status().is_success() {
         let data: Vec<Receiver> = match res.json().await {
             Ok(val) => val,
             Err(e) => {
                 info!("Failed to deserialize due to error: {}", e);
-
                 return Err(());
             }
         };
         return Ok(data);
+    } else {
+        info!("Received error status from registry: {}", res.status());
     }
 
     return Err(());

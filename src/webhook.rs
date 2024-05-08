@@ -107,15 +107,24 @@ pub async fn target(
     )
     .await
     .map_err(|e| {
+        info!("Registration failed: {:?}", e);
         (
             http::StatusCode::SERVICE_UNAVAILABLE,
             format!("Registration failed: {:?}", e),
         )
     })?;
 
-    // 4. Send encrypted data to receiver endpoints returned by the registry
+    info!(
+        "Registration successful, received {} receivers",
+        receivers.len()
+    );
 
+    // 4. Send encrypted data to receiver endpoints returned by the registry
     for receiver in receivers {
+        info!(
+            "Encrypting and sending envelope to receiver {} at {}",
+            receiver.name, receiver.address
+        );
         match encrypt_and_send(&receiver, &sender_client_id, &registration, &receipt).await {
             Ok(_) => info!("Successfully sent to receiver: {}", receiver.address),
             Err(e) => {

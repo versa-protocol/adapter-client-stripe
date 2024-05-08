@@ -32,3 +32,10 @@ WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxxxx
 # The URL of the Versa registry, where the client will register data hashes and decryption keys
 REGISTRY_URL=https://registry.versa.org
 ```
+
+## Testing the Docker Image Locally
+
+```sh
+docker run --env  CLIENT_ID=versa_cid_test_xxxxx --env CLIENT_SECRET=versa_csk_test_xxxxx --env WEBHOOK_SECRET=whsec_xxxxx --env REGISTRY_URL=https://registry.versa.org [DOCKER_IMAGE]
+
+```
