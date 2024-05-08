@@ -97,7 +97,6 @@ where
     let client = reqwest::Client::new();
     let response_result = client
         .post(&receiver.address)
-        .header("Accept", "application/json")
         // .header("Authorization", credential) // TODO ?
         .header("Content-Type", "application/json")
         .body(payload_json)
