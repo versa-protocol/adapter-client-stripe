@@ -1,31 +1,35 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     encryption::encrypt_envelope,
-    model::{Envelope, Receiver, RegistrationData, RoutingInfo},
+    model::{Envelope, Receiver, RoutingInfo},
 };
 
 #[derive(Serialize)]
 pub struct TransactionRegistration {
     pub transaction_hash: u64,
-    pub decryption_key: Vec<u8>,
     pub authorization_bin: Option<String>,
     pub customer_email: Option<String>,
     pub customer_id: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct RegistrationResponse {
+    pub receivers: Vec<Receiver>,
+    pub encryption_key: Vec<u8>,
 }
 
 pub async fn register(
     client_id: &str,
     client_secret: &str,
     routing_info: RoutingInfo,
-    registration_data: &RegistrationData,
-) -> Result<Vec<Receiver>, ()> {
+    registration_hash: u64,
+) -> Result<RegistrationResponse, ()> {
     let registry_url = std::env::var("REGISTRY_URL").unwrap_or_default();
     let credential = format!("{}:{}", client_id, client_secret);
 
     let payload = TransactionRegistration {
-        transaction_hash: registration_data.hash,
-        decryption_key: registration_data.key.clone(),
+        transaction_hash: registration_hash,
         authorization_bin: routing_info.authorization_bin,
         customer_email: routing_info.customer_email,
         customer_id: None,
@@ -55,7 +59,7 @@ pub async fn register(
     info!("Registration response received");
 
     if res.status().is_success() {
-        let data: Vec<Receiver> = match res.json().await {
+        let data: RegistrationResponse = match res.json().await {
             Ok(val) => val,
             Err(e) => {
                 info!("Failed to deserialize due to error: {}", e);
@@ -79,13 +83,13 @@ pub struct ReceiverPayload {
 pub async fn encrypt_and_send<T>(
     receiver: &Receiver,
     client_id: &str,
-    registration_data: &RegistrationData,
+    encryption_key: &Vec<u8>,
     data: T,
 ) -> Result<(), ()>
 where
     T: Serialize,
 {
-    let envelope = encrypt_envelope(&data, &registration_data.key);
+    let envelope = encrypt_envelope(&data, encryption_key);
 
     let payload = ReceiverPayload {
         sender_client_id: client_id.to_string(),

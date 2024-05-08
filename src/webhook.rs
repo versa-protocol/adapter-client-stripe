@@ -89,7 +89,7 @@ pub async fn target(
 
     // 3. Encrypt, hash, and register with Versa registry
 
-    let registration = crate::encryption::generate_key_and_hash(&receipt);
+    let registration_hash = crate::encryption::generate_hash(&receipt);
 
     // Authorized receivers subscribed to this email or domain will be returned by the registry
     let routing_info = crate::model::RoutingInfo {
@@ -99,11 +99,11 @@ pub async fn target(
 
     let sender_client_secret = std::env::var("CLIENT_SECRET").unwrap_or_default();
 
-    let receivers = crate::protocol::register(
+    let response = crate::protocol::register(
         &sender_client_id,
         &sender_client_secret,
         routing_info,
-        &registration,
+        registration_hash,
     )
     .await
     .map_err(|e| {
@@ -116,16 +116,23 @@ pub async fn target(
 
     info!(
         "Registration successful, received {} receivers",
-        receivers.len()
+        response.receivers.len()
     );
 
     // 4. Send encrypted data to receiver endpoints returned by the registry
-    for receiver in receivers {
+    for receiver in response.receivers {
         info!(
             "Encrypting and sending envelope to receiver {} at {}",
             receiver.name, receiver.address
         );
-        match encrypt_and_send(&receiver, &sender_client_id, &registration, &receipt).await {
+        match encrypt_and_send(
+            &receiver,
+            &sender_client_id,
+            &response.encryption_key,
+            &receipt,
+        )
+        .await
+        {
             Ok(_) => info!("Successfully sent to receiver: {}", receiver.address),
             Err(e) => {
                 info!("Failed to send to receiver: {:?}", e)

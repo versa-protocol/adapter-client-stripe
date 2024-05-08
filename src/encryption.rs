@@ -1,5 +1,5 @@
 use aes_siv::{
-    aead::{Aead, KeyInit, OsRng},
+    aead::{Aead, KeyInit},
     Aes256SivAead, Nonce,
 };
 use json_canon::to_string;
@@ -8,7 +8,7 @@ use serde::Serialize;
 use serde_json::json;
 use std::hash::{DefaultHasher, Hash, Hasher};
 
-use crate::model::{Envelope, RegistrationData};
+use crate::model::Envelope;
 
 fn generate_nonce() -> [u8; 16] {
     let mut rng = rand::thread_rng();
@@ -23,7 +23,7 @@ fn calculate_hash<T: Hash>(t: &T) -> u64 {
     s.finish()
 }
 
-pub fn generate_key_and_hash<T>(data: &T) -> RegistrationData
+pub fn generate_hash<T>(data: &T) -> u64
 where
     T: Serialize,
 {
@@ -34,13 +34,7 @@ where
         Err(e) => panic!("Error canonicalizing JSON: {}", e),
     };
 
-    let hash = calculate_hash(&canonicalized);
-
-    let bytekey = Aes256SivAead::generate_key(&mut OsRng);
-    RegistrationData {
-        key: bytekey.to_vec(),
-        hash,
-    }
+    calculate_hash(&canonicalized)
 }
 
 pub fn encrypt_envelope<T>(data: &T, key: &Vec<u8>) -> Envelope
@@ -75,6 +69,7 @@ mod encrypt_tests {
         Aes256SivAead,
     };
     use pretty_assertions::assert_eq;
+    use rand::rngs::OsRng;
     use serde::{Deserialize, Serialize};
 
     #[derive(Serialize, Deserialize, Debug)]
@@ -100,12 +95,13 @@ mod encrypt_tests {
             details: vec![],
         };
 
-        let registration_data = super::generate_key_and_hash(&data);
-        let envelope = super::encrypt_envelope(&data, &registration_data.key);
+        let bytekey = Aes256SivAead::generate_key(&mut OsRng);
+        let registration_hash = super::generate_hash(&data);
+        let envelope = super::encrypt_envelope(&data, &bytekey.to_vec());
 
-        assert_eq!(registration_data.hash, envelope.hash);
+        assert_eq!(registration_hash, envelope.hash);
 
-        let cipher = Aes256SivAead::new(registration_data.key[..].into());
+        let cipher = Aes256SivAead::new(&bytekey);
         let decrypted = cipher
             .decrypt(
                 envelope.nonce[..].into(),
@@ -119,6 +115,6 @@ mod encrypt_tests {
         assert_eq!(deserialized.merchant_entity_id, "Amazon".to_string());
 
         let recalculated_hash = super::calculate_hash(&canonical_json);
-        assert_eq!(recalculated_hash, registration_data.hash);
+        assert_eq!(recalculated_hash, registration_hash);
     }
 }
