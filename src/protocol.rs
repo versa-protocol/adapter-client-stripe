@@ -115,8 +115,12 @@ where
         info!("Successfully sent data to receiver: {}", receiver.address);
         // TODO: process response from each receiver
         return Ok(());
+    } else {
+        let status = res.status();
+        let text = res.text().await.unwrap_or_default();
+        info!("Received an error from the receiver: {} {}", status, text);
     }
-    info!("Received an error from the receiver: {:?}", res);
+    // info!("Received an error from the receiver: {:?}", res);
 
     return Err(());
 }

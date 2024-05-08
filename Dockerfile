@@ -5,8 +5,7 @@ FROM chef AS planner
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef AS builder 
-ARG service_variant
+FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 # Build dependencies - this is the caching Docker layer!
 RUN cargo chef cook --release --recipe-path recipe.json
@@ -24,7 +23,7 @@ RUN apt-get install -y default-libmysqlclient-dev
 RUN apt-get update
 RUN apt-get install -y gnupg lsb-release wget
 
-# Copy data-service executable to the readied runner image
+# Copy executable to the readied runner image
 FROM runner as service
 COPY --from=builder /usr/local/cargo/bin/adapter-client-stripe /usr/local/bin/adapter-client-stripe
 EXPOSE 8000

@@ -7,6 +7,7 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> SenderReceiptHeader {
 
     SenderReceiptHeader {
         id: invoice.id.to_string(),
+        schema_version: "1".into(),
         currency: invoice
             .currency
             .and_then(|currency| Some(currency.to_string()))
@@ -15,6 +16,7 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> SenderReceiptHeader {
         subtotal: invoice.subtotal.unwrap_or_default(),
         date_time: invoice.created.unwrap_or_default(),
         sender_client_id,
+        mcc: None,
         third_party: None,
     }
 }

@@ -20,11 +20,13 @@ pub struct ThirdParty {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SenderReceiptHeader {
     pub id: String,
+    pub schema_version: String,
     pub currency: String,
     pub amount: i64,
     pub subtotal: i64,
     pub date_time: i64,
     pub sender_client_id: String,
+    pub mcc: Option<String>,
     pub third_party: Option<ThirdParty>,
 }
 
