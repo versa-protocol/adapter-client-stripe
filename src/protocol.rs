@@ -106,13 +106,18 @@ where
 
     let res = match response_result {
         Ok(res) => res,
-        Err(_) => return Err(()),
+        Err(e) => {
+            info!("Error placing request: {:?}", e);
+            return Err(());
+        }
     };
 
     if res.status().is_success() {
+        info!("Successfully sent data to receiver: {}", receiver.address);
         // TODO: process response from each receiver
         return Ok(());
     }
+    info!("Received an error from the receiver: {:?}", res);
 
     return Err(());
 }

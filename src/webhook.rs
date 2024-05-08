@@ -128,11 +128,7 @@ pub async fn target(
         match encrypt_and_send(&receiver, &sender_client_id, &registration, &receipt).await {
             Ok(_) => info!("Successfully sent to receiver: {}", receiver.address),
             Err(e) => {
-                info!("Failed to send to receiver: {:?}", e);
-                return Err((
-                    http::StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to send to receiver: {:?}", e),
-                ));
+                info!("Failed to send to receiver: {:?}", e)
             }
         }
     }
