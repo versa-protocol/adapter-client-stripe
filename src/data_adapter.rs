@@ -26,18 +26,25 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
             car_rental: Default::default(),
             transit_route: Default::default(),
             subscription: Subscription {
-                subscription_items: vec![
-                    SubscriptionItem {
-                        current_period_end: todo!(),
-                        current_period_start: todo!(),
-                        description: todo!(), discounts: todo!(), interval: todo!(), interval_count: todo!(), metadata: todo!(), quantity: todo!(), taxes: todo!(), subscription_item_type: todo!(), unit_cost: todo!() }
-                ]
-                invoice_level_discounts: None // invoice.discount
+                subscription_items: vec![SubscriptionItem {
+                    current_period_end: todo!(),
+                    current_period_start: todo!(),
+                    description: todo!(),
+                    discounts: todo!(),
+                    interval: todo!(),
+                    interval_count: todo!(),
+                    metadata: todo!(),
+                    quantity: todo!(),
+                    taxes: todo!(),
+                    subscription_item_type: todo!(),
+                    unit_cost: todo!(),
+                }],
+                invoice_level_discounts: None, // invoice.discount
             },
             flight: Default::default(),
         },
         payment: None,
-        version: "0.2.0".into()
+        version: "0.2.0".into(),
     }
 
     // SenderReceiptHeader {
