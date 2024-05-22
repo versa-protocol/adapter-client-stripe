@@ -14,6 +14,7 @@ mod middleware;
 mod model;
 mod protocol;
 mod webhook;
+mod receipt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
