@@ -50,21 +50,10 @@ pub struct RoutingInfo {
     pub authorization_par: Option<String>,
 }
 
-// #[derive(Deserialize, Debug)]
-// pub struct Receiver {
-//     pub address: String,
-//     pub org_id: String,
-//     pub version: String,
-// }
-
 #[derive(Deserialize)]
 pub struct Receiver {
-    pub id: String,
-    pub org_id: String,
-    pub handle: String,
-    pub handle_type: String,
-    pub name: String,
     pub address: String,
-    pub created: i64,
-    pub decommissioned: Option<i64>,
+    pub client_id: String,
+    pub org_id: String,
+    pub secret: String,
 }

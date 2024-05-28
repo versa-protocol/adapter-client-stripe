@@ -84,25 +84,25 @@ pub async fn target(
 
     let customer_email = invoice.customer_email.clone();
     let receipt = crate::data_adapter::transform_stripe_invoice(invoice);
-    let sender_client_id = receipt.sender_client_id.clone();
+    let sender_client_id = std::env::var("CLIENT_ID").unwrap();
     info!("Received invoice for customer email: {:?}", customer_email);
 
     // 3. Encrypt, hash, and register with Versa registry
 
     let registration_hash = crate::encryption::generate_hash(&receipt);
 
-    // Authorized receivers subscribed to this email or domain will be returned by the registry
-    let routing_info = crate::model::RoutingInfo {
-        customer_email,
-        ..Default::default()
-    };
+    // // Authorized receivers subscribed to this email or domain will be returned by the registry
+    // let routing_info = crate::model::RoutingInfo {
+    //     customer_email,
+    //     ..Default::default()
+    // };
 
     let sender_client_secret = std::env::var("CLIENT_SECRET").unwrap_or_default();
 
     let response = crate::protocol::register(
         &sender_client_id,
         &sender_client_secret,
-        routing_info,
+        customer_email,
         registration_hash,
     )
     .await
@@ -123,7 +123,7 @@ pub async fn target(
     for receiver in response.receivers {
         info!(
             "Encrypting and sending envelope to receiver {} at {}",
-            receiver.name, receiver.address
+            receiver.org_id, receiver.address
         );
         match encrypt_and_send(
             &receiver,

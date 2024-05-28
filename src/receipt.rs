@@ -157,7 +157,7 @@ pub struct DiscountElement {
     pub amount: i64,
     pub name: String,
     #[serde(rename = "type")]
-    pub receip_type: DiscountType,
+    pub discount_type: DiscountType,
     pub rate: Option<serde_json::Value>,
 }
 

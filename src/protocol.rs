@@ -2,19 +2,20 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     encryption::encrypt_envelope,
-    model::{Envelope, Receiver, RoutingInfo},
+    model::{Envelope, Receiver},
 };
 
 #[derive(Serialize)]
-pub struct TransactionRegistration {
-    pub transaction_hash: u64,
+pub struct ReceiptRegistrationRequest {
+    pub receipt_hash: u64,
+    pub schema_version: String,
     pub authorization_bin: Option<String>,
-    pub customer_email: Option<String>,
-    pub customer_id: Option<String>,
+    pub customer_email_domain: Option<String>,
+    pub customer_email_uhash: Option<String>,
 }
 
 #[derive(Deserialize)]
-pub struct RegistrationResponse {
+pub struct ReceiptRegistrationResponse {
     pub receivers: Vec<Receiver>,
     pub encryption_key: Vec<u8>,
 }
@@ -22,17 +23,21 @@ pub struct RegistrationResponse {
 pub async fn register(
     client_id: &str,
     client_secret: &str,
-    routing_info: RoutingInfo,
+    customer_email: Option<String>,
     registration_hash: u64,
-) -> Result<RegistrationResponse, ()> {
+) -> Result<ReceiptRegistrationResponse, ()> {
     let registry_url = std::env::var("REGISTRY_URL").unwrap_or_default();
-    let credential = format!("{}:{}", client_id, client_secret);
+    let credential = format!("Basic {}:{}", client_id, client_secret);
 
-    let payload = TransactionRegistration {
-        transaction_hash: registration_hash,
-        authorization_bin: routing_info.authorization_bin,
-        customer_email: routing_info.customer_email,
-        customer_id: None,
+    let customer_email_domain =
+        customer_email.and_then(|e| Some(e.split("@").nth(1).unwrap().to_string()));
+
+    let payload = ReceiptRegistrationRequest {
+        receipt_hash: registration_hash,
+        schema_version: "0.1.0".into(),
+        customer_email_domain,
+        customer_email_uhash: None,
+        authorization_bin: None,
     };
 
     let payload_json = serde_json::to_string(&payload).unwrap();
@@ -59,7 +64,7 @@ pub async fn register(
     info!("Registration response received");
 
     if res.status().is_success() {
-        let data: RegistrationResponse = match res.json().await {
+        let data: ReceiptRegistrationResponse = match res.json().await {
             Ok(val) => val,
             Err(e) => {
                 info!("Failed to deserialize due to error: {}", e);
