@@ -13,8 +13,8 @@ mod healthz;
 mod middleware;
 mod model;
 mod protocol;
-mod webhook;
 mod receipt;
+mod webhook;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
