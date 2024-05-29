@@ -2,7 +2,6 @@ use aes_siv::{
     aead::{Aead, KeyInit},
     Aes256SivAead, Nonce,
 };
-use json_canon::to_string;
 use rand::Rng;
 use serde::Serialize;
 use serde_json::json;
@@ -27,9 +26,9 @@ pub fn generate_hash<T>(data: &T) -> u64
 where
     T: Serialize,
 {
-    let serde_json = json!(data);
+    let serde_json_val = json!(data);
 
-    let canonicalized = match to_string(&serde_json) {
+    let canonicalized = match json_canon::to_string(&serde_json_val) {
         Ok(canonicalized) => canonicalized,
         Err(e) => panic!("Error canonicalizing JSON: {}", e),
     };
@@ -43,10 +42,7 @@ where
 {
     let serde_json = json!(data);
 
-    let canonicalized = match to_string(&serde_json) {
-        Ok(canonicalized) => canonicalized,
-        Err(e) => panic!("Error canonicalizing JSON: {}", e),
-    };
+    let canonicalized = canonize_json(&serde_json);
     let hash = calculate_hash(&canonicalized);
     let nonce_bytes = generate_nonce();
     let nonce = Nonce::from_slice(&nonce_bytes); // unique to each receiver and included in message
@@ -116,5 +112,30 @@ mod encrypt_tests {
 
         let recalculated_hash = super::calculate_hash(&canonical_json);
         assert_eq!(recalculated_hash, registration_hash);
+    }
+}
+
+fn canonize_json(serde_json_val: &serde_json::Value) -> String {
+    match json_canon::to_string(serde_json_val) {
+        Ok(canonicalized) => canonicalized,
+        Err(e) => panic!("Error canonicalizing JSON: {}", e),
+    }
+}
+
+#[cfg(test)]
+mod encryption_tests {
+    use pretty_assertions::assert_eq;
+    use serde_json::json;
+
+    #[test]
+    fn test_canonize_json() {
+        let json = json!({
+            "foo": "bar",
+            "baz": 123,
+            "qux": null
+        });
+
+        let canonicalized = super::canonize_json(&json);
+        assert_eq!(canonicalized, "{\"baz\":123,\"foo\":\"bar\",\"qux\":null}");
     }
 }

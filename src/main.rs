@@ -13,7 +13,6 @@ mod healthz;
 mod middleware;
 mod model;
 mod protocol;
-mod receipt;
 mod webhook;
 
 #[tokio::main]

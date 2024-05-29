@@ -1,8 +1,8 @@
 use stripe::{Invoice, RecurringInterval};
 
-use crate::receipt::{
+use versa_unstable_schema::receipt::{
     Currency, Customer, DiscountElement, DiscountType, Header, Interval, Itemization, Receipt,
-    Subscription, SubscriptionItem, SubscriptionItemType,
+    Subscription, SubscriptionItem, SubscriptionType,
 };
 
 pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
@@ -27,13 +27,12 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
             amount: invoice.amount_paid.expect("Invoices must have been paid"),
             currency: Currency::Usd, // invoice.currency.expect("Invoices must have an associated currency"),
             customer,
-            datetime: invoice.created, // datetime of payment?
             location: None,
             mcc: None,
             receipt_id: invoice.id.to_string(),
             subtotal: invoice.subtotal,
             third_party: None,
-            date_time: None,
+            created_at: invoice.created.expect("Invoices must have a creation date"),
         },
         itemization: Itemization {
             general: Default::default(),
@@ -89,7 +88,6 @@ fn invoice_items_to_subscriptions(
                                 Some(DiscountElement {
                                     amount: d.coupon.amount_off.unwrap_or_default(),
                                     name: d.coupon.name.unwrap_or_default(), // should be optional?
-                                    // typo ? // how to know?
                                     discount_type: match d.coupon.percent_off {
                                         Some(_) => DiscountType::Percentage,
                                         None => DiscountType::Fixed,
@@ -113,14 +111,14 @@ fn invoice_items_to_subscriptions(
                 metadata: None,
                 quantity: i.quantity.and_then(|q| Some(q as f64)),
                 taxes: None,
-                subscription_item_type: match price.type_.and_then(|t| {
+                subscription_type: match price.type_.and_then(|t| {
                     Some(match t {
-                        stripe::PriceType::OneTime => SubscriptionItemType::OneTime,
-                        stripe::PriceType::Recurring => SubscriptionItemType::Recurring,
+                        stripe::PriceType::OneTime => SubscriptionType::OneTime,
+                        stripe::PriceType::Recurring => SubscriptionType::Recurring,
                     })
                 }) {
                     Some(val) => val,
-                    None => SubscriptionItemType::OneTime,
+                    None => SubscriptionType::OneTime,
                 },
                 unit_cost: price.unit_amount.and_then(|c| Some(c as f64)),
             })
