@@ -16,7 +16,7 @@ RUN cargo install --path .
 FROM debian:bookworm-slim as runner
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates
- RUN apt-get clean
+RUN apt-get clean
 RUN update-ca-certificates
 
 # Copy executable to the readied runner image
