@@ -40,10 +40,10 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
             ecommerce: Default::default(),
             car_rental: Default::default(),
             transit_route: Default::default(),
-            subscription: Subscription {
+            subscription: Some(Subscription {
                 subscription_items: invoice_items_to_subscriptions(invoice.lines),
                 invoice_level_discounts: None, // invoice.discount
-            },
+            }),
             flight: Default::default(),
         },
         payment: None,
