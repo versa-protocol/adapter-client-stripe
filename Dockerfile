@@ -14,14 +14,10 @@ COPY . .
 RUN cargo install --path .
 
 FROM debian:bookworm-slim as runner
-RUN apt-get update -y
-RUN apt-get install wget -y
-# Required to install mysql
-# libmysqlclient-dev necessary for diesel's mysql integration
-RUN apt-get install -y default-libmysqlclient-dev
-# Add Oracle MySQL repository
-RUN apt-get update
-RUN apt-get install -y gnupg lsb-release wget
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates
+ RUN apt-get clean
+RUN update-ca-certificates
 
 # Copy executable to the readied runner image
 FROM runner as service
