@@ -1,3 +1,4 @@
+use hmac::Mac;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -79,10 +80,18 @@ pub async fn register(
     return Err(());
 }
 
-#[derive(Serialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ReceiverPayload {
     sender_client_id: String,
     envelope: Envelope,
+}
+
+async fn generate_token(body: bytes::Bytes, secret: String) -> String {
+    let mut mac = hmac::Hmac::<sha1::Sha1>::new_from_slice(&secret.as_bytes()).unwrap();
+    mac.update(body.as_ref());
+    let code_bytes = mac.finalize().into_bytes();
+    let hexdigest = hex::encode(&code_bytes.to_vec());
+    hexdigest
 }
 
 pub async fn encrypt_and_send<T>(
@@ -102,12 +111,13 @@ where
     };
 
     let payload_json = serde_json::to_string(&payload).unwrap();
-
+    let byte_body = bytes::Bytes::from(payload_json.clone());
+    let token = generate_token(byte_body, receiver.secret.clone()).await;
     let client = reqwest::Client::new();
     let response_result = client
         .post(&receiver.address)
-        // .header("Authorization", credential) // TODO ?
         .header("Content-Type", "application/json")
+        .header("X-Request-Signature", token)
         .body(payload_json)
         .send()
         .await;

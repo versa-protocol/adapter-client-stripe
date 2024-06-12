@@ -30,7 +30,7 @@ pub struct SenderReceiptHeader {
     pub third_party: Option<ThirdParty>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Envelope {
     pub encrypted: Vec<u8>,
     pub hash: u64,

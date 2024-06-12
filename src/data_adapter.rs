@@ -1,8 +1,8 @@
 use stripe::{Invoice, RecurringInterval};
 
 use versa_unstable_schema::receipt::{
-    Currency, Customer, DiscountElement, DiscountType, Header, Interval, Itemization, Receipt,
-    Subscription, SubscriptionItem, SubscriptionType,
+    Currency, Customer, DiscountType, Header, Interval, InvoiceLevelDiscountElement, Itemization,
+    Receipt, SubscriptionClass, SubscriptionItem, SubscriptionType,
 };
 
 pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
@@ -24,15 +24,20 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
     Receipt {
         actions: Some(vec![]),
         header: Header {
-            amount: invoice.amount_paid.expect("Invoices must have been paid"),
+            total: invoice.total.expect("Invoices must have a total"),
             currency: Currency::Usd, // invoice.currency.expect("Invoices must have an associated currency"),
             customer,
             location: None,
             mcc: None,
             receipt_id: invoice.id.to_string(),
-            subtotal: invoice.subtotal,
+            subtotal: invoice.subtotal.unwrap_or(
+                invoice
+                    .amount_due
+                    .expect("Invoices must have a subtotal or amount due"),
+            ),
             third_party: None,
             created_at: invoice.created.expect("Invoices must have a creation date"),
+            paid: invoice.amount_paid.expect("Invoices must have been paid"),
         },
         itemization: Itemization {
             general: Default::default(),
@@ -40,13 +45,13 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
             ecommerce: Default::default(),
             car_rental: Default::default(),
             transit_route: Default::default(),
-            subscription: Some(Subscription {
+            subscription: Some(SubscriptionClass {
                 subscription_items: invoice_items_to_subscriptions(invoice.lines),
                 invoice_level_discounts: None, // invoice.discount
             }),
             flight: Default::default(),
         },
-        payment: None,
+        payments: None,
         version: "0.2.0".into(),
     }
 
@@ -85,7 +90,7 @@ fn invoice_items_to_subscriptions(
                     ds.into_iter()
                         .map(|d| {
                             if let Some(d) = d.into_object() {
-                                Some(DiscountElement {
+                                Some(InvoiceLevelDiscountElement {
                                     amount: d.coupon.amount_off.unwrap_or_default(),
                                     name: d.coupon.name.unwrap_or_default(), // should be optional?
                                     discount_type: match d.coupon.percent_off {
