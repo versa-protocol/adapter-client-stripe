@@ -125,6 +125,7 @@ fn invoice_items_to_subscriptions(
                     Some(val) => val,
                     None => SubscriptionType::OneTime,
                 },
+                total: i.amount,
                 unit_cost: price.unit_amount.and_then(|c| Some(c as f64)),
             })
         })
