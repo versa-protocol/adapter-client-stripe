@@ -1,8 +1,8 @@
 use stripe::{Invoice, RecurringInterval};
 
 use versa_unstable_schema::receipt::{
-    Currency, Customer, DiscountType, Header, Interval, InvoiceLevelDiscountElement, Itemization,
-    Receipt, SubscriptionClass, SubscriptionItem, SubscriptionType,
+    AdjustmentType, Currency, Customer, Header, Interval, InvoiceLevelAdjustmentElement,
+    Itemization, Receipt, SubscriptionClass, SubscriptionItem, SubscriptionType,
 };
 
 pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
@@ -36,7 +36,7 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
                     .expect("Invoices must have a subtotal or amount due"),
             ),
             third_party: None,
-            created_at: invoice.created.expect("Invoices must have a creation date"),
+            invoiced_at: invoice.created.expect("Invoices must have a creation date"),
             paid: invoice.amount_paid.expect("Invoices must have been paid"),
         },
         itemization: Itemization {
@@ -47,7 +47,7 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
             transit_route: Default::default(),
             subscription: Some(SubscriptionClass {
                 subscription_items: invoice_items_to_subscriptions(invoice.lines),
-                invoice_level_discounts: None, // invoice.discount
+                invoice_level_adjustments: None,
             }),
             flight: Default::default(),
         },
@@ -86,17 +86,18 @@ fn invoice_items_to_subscriptions(
                 current_period_end: period.end,
                 current_period_start: period.start,
                 description: i.description.unwrap_or("Missing Description".into()),
-                discounts: i.discounts.and_then(|ds| {
+                adjustments: i.discounts.and_then(|ds| {
                     ds.into_iter()
                         .map(|d| {
                             if let Some(d) = d.into_object() {
-                                Some(InvoiceLevelDiscountElement {
+                                Some(InvoiceLevelAdjustmentElement {
                                     amount: d.coupon.amount_off.unwrap_or_default(),
-                                    name: d.coupon.name.unwrap_or_default(), // should be optional?
-                                    discount_type: match d.coupon.percent_off {
-                                        Some(_) => DiscountType::Percentage,
-                                        None => DiscountType::Fixed,
-                                    },
+                                    name: d.coupon.name,
+                                    adjustment_type: AdjustmentType::Discount,
+                                    // discount_type: match d.coupon.percent_off {
+                                    //     Some(_) => DiscountType::Percentage,
+                                    //     None => DiscountType::Fixed,
+                                    // },
                                     rate: None,
                                 })
                             } else {
