@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "adapter-client-stripe"
-version = "0.4.0"
+version = "1.0.0"
 dependencies = [
  "aes-siv",
  "async-stripe",
