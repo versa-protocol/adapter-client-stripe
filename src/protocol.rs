@@ -7,12 +7,17 @@ use crate::{
 };
 
 #[derive(Serialize)]
-pub struct ReceiptRegistrationRequest {
-    pub receipt_hash: u64,
-    pub schema_version: String,
+pub struct TransactionHandles {
     pub authorization_bin: Option<String>,
     pub customer_email_domain: Option<String>,
     pub customer_email_uhash: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct ReceiptRegistrationRequest {
+    pub receipt_hash: u64,
+    pub schema_version: String,
+    pub handles: TransactionHandles,
 }
 
 #[derive(Deserialize)]
@@ -35,10 +40,12 @@ pub async fn register(
 
     let payload = ReceiptRegistrationRequest {
         receipt_hash: registration_hash,
-        schema_version: "0.1.0".into(),
-        customer_email_domain,
-        customer_email_uhash: None,
-        authorization_bin: None,
+        schema_version: "1.0.0".into(),
+        handles: TransactionHandles {
+            authorization_bin: None,
+            customer_email_domain,
+            customer_email_uhash: None,
+        },
     };
 
     let payload_json = serde_json::to_string(&payload).unwrap();
