@@ -23,6 +23,7 @@ pub struct ReceiptRegistrationRequest {
 #[derive(Deserialize)]
 pub struct ReceiptRegistrationResponse {
     pub receivers: Vec<Receiver>,
+    pub receipt_id: String,
     pub encryption_key: Vec<u8>,
 }
 
@@ -89,8 +90,9 @@ pub async fn register(
 
 #[derive(Deserialize, Serialize)]
 pub struct ReceiverPayload {
-    sender_client_id: String,
-    envelope: Envelope,
+    pub sender_client_id: String,
+    pub receipt_id: String,
+    pub envelope: Envelope,
 }
 
 async fn generate_token(body: bytes::Bytes, secret: String) -> String {
@@ -104,6 +106,7 @@ async fn generate_token(body: bytes::Bytes, secret: String) -> String {
 pub async fn encrypt_and_send<T>(
     receiver: &Receiver,
     client_id: &str,
+    receipt_id: String,
     encryption_key: &Vec<u8>,
     data: T,
 ) -> Result<(), ()>
@@ -114,6 +117,7 @@ where
 
     let payload = ReceiverPayload {
         sender_client_id: client_id.to_string(),
+        receipt_id: receipt_id,
         envelope: envelope,
     };
 

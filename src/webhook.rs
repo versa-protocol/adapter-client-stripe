@@ -128,6 +128,7 @@ pub async fn target(
         match encrypt_and_send(
             &receiver,
             &sender_client_id,
+            response.receipt_id.clone(),
             &response.encryption_key,
             &receipt,
         )
