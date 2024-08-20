@@ -8,9 +8,7 @@ use crate::{
 
 #[derive(Serialize)]
 pub struct TransactionHandles {
-    pub authorization_bin: Option<String>,
-    pub customer_email_domain: Option<String>,
-    pub customer_email_uhash: Option<String>,
+    pub customer_email: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -36,22 +34,15 @@ pub async fn register(
     let registry_url = std::env::var("REGISTRY_URL").unwrap_or_default();
     let credential = format!("Basic {}:{}", client_id, client_secret);
 
-    let customer_email_domain =
-        customer_email.and_then(|e| Some(e.split("@").nth(1).unwrap().to_string()));
-
     let payload = ReceiptRegistrationRequest {
         receipt_hash: registration_hash,
         schema_version: "1.0.0".into(),
-        handles: TransactionHandles {
-            authorization_bin: None,
-            customer_email_domain,
-            customer_email_uhash: None,
-        },
+        handles: TransactionHandles { customer_email },
     };
 
     let payload_json = serde_json::to_string(&payload).unwrap();
 
-    let url = format!("{}/http/register", registry_url);
+    let url = format!("{}/register", registry_url);
     info!("Sending registration request to: {}", url);
     let client = reqwest::Client::new();
     let response_result = client
