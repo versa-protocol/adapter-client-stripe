@@ -1,7 +1,5 @@
-use aes_siv::{
-    aead::{Aead, KeyInit},
-    Aes256SivAead, Nonce,
-};
+use aes_gcm_siv::{aead::Aead, Aes256GcmSiv, KeyInit, Nonce};
+use base64::prelude::*;
 use rand::Rng;
 use serde::Serialize;
 use serde_json::json;
@@ -9,9 +7,9 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 
 use crate::model::Envelope;
 
-fn generate_nonce() -> [u8; 16] {
+fn generate_nonce() -> [u8; 12] {
     let mut rng = rand::thread_rng();
-    let mut nonce = [0u8; 16];
+    let mut nonce = [0u8; 12];
     rng.fill(&mut nonce);
     nonce
 }
@@ -46,24 +44,25 @@ where
     let hash = calculate_hash(&canonicalized);
     let nonce_bytes = generate_nonce();
     let nonce = Nonce::from_slice(&nonce_bytes); // unique to each receiver and included in message
-    let cipher = Aes256SivAead::new(key[..].into());
+    let cipher = Aes256GcmSiv::new(key[..].into());
     let encrypted = match cipher.encrypt(nonce, canonicalized.as_bytes()) {
-        Ok(ciphertext) => ciphertext,
+        Ok(ciphertext) => BASE64_STANDARD.encode(ciphertext),
         Err(e) => panic!("Error encrypting data: {}", e),
     };
     Envelope {
         hash,
         encrypted,
-        nonce: nonce_bytes.to_vec(),
+        nonce: BASE64_STANDARD.encode(nonce_bytes),
     }
 }
 
 #[cfg(test)]
 mod encrypt_tests {
-    use aes_siv::{
+    use aes_gcm_siv::{
         aead::{Aead, KeyInit, Payload},
-        Aes256SivAead,
+        Aes256GcmSiv,
     };
+    use base64::prelude::*;
     use pretty_assertions::assert_eq;
     use rand::rngs::OsRng;
     use serde::{Deserialize, Serialize};
@@ -91,17 +90,17 @@ mod encrypt_tests {
             details: vec![],
         };
 
-        let bytekey = Aes256SivAead::generate_key(&mut OsRng);
+        let bytekey = Aes256GcmSiv::generate_key(&mut OsRng);
         let registration_hash = super::generate_hash(&data);
         let envelope = super::encrypt_envelope(&data, &bytekey.to_vec());
 
         assert_eq!(registration_hash, envelope.hash);
 
-        let cipher = Aes256SivAead::new(&bytekey);
+        let cipher = Aes256GcmSiv::new(&bytekey);
         let decrypted = cipher
             .decrypt(
-                envelope.nonce[..].into(),
-                Payload::from(&envelope.encrypted[..]),
+                BASE64_STANDARD.decode(envelope.nonce).unwrap()[..].into(),
+                Payload::from(&BASE64_STANDARD.decode(envelope.encrypted).unwrap()[..]),
             )
             .expect("Decryption works");
         assert_eq!(decrypted, "{\"amount\":3445,\"authorization_id\":\"foo\",\"authorized\":4545,\"details\":[],\"merchant_entity_id\":\"Amazon\"}".as_bytes());

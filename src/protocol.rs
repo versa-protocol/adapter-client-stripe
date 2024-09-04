@@ -1,3 +1,4 @@
+use base64::prelude::*;
 use hmac::Mac;
 use serde::{Deserialize, Serialize};
 
@@ -22,7 +23,7 @@ pub struct ReceiptRegistrationRequest {
 pub struct ReceiptRegistrationResponse {
     pub receivers: Vec<Receiver>,
     pub receipt_id: String,
-    pub encryption_key: Vec<u8>,
+    pub encryption_key: String,
 }
 
 pub async fn register(
@@ -98,13 +99,13 @@ pub async fn encrypt_and_send<T>(
     receiver: &Receiver,
     client_id: &str,
     receipt_id: String,
-    encryption_key: &Vec<u8>,
+    encryption_key: String,
     data: T,
 ) -> Result<(), ()>
 where
     T: Serialize,
 {
-    let envelope = encrypt_envelope(&data, encryption_key);
+    let envelope = encrypt_envelope(&data, &BASE64_STANDARD.decode(encryption_key).unwrap());
 
     let payload = ReceiverPayload {
         sender_client_id: client_id.to_string(),

@@ -129,7 +129,7 @@ pub async fn target(
             &receiver,
             &sender_client_id,
             response.receipt_id.clone(),
-            &response.encryption_key,
+            response.encryption_key.clone(),
             &receipt,
         )
         .await

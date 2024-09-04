@@ -1,12 +1,13 @@
 [package]
 name = "adapter-client-stripe"
-version = "1.0.2"
+version = "1.1.0"
 edition = "2021"
 
 [dependencies]
-aes-siv = "0.7.0"
+aes-gcm-siv = "0.11.1"
 async-stripe = { version = "0.37.0", features = ["runtime-tokio-hyper"] }
 axum = "0.7.5"
+base64 = "0.22.1"
 bytes = "1.6.0"
 dotenv = "0.15.0"
 hex = "0.4.3"
