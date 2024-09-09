@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "adapter-client-stripe"
-version = "1.1.0"
+version = "1.2.0"
 dependencies = [
  "aes-gcm-siv",
  "async-stripe",
@@ -12,7 +12,6 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "dotenv",
- "hex",
  "hmac",
  "http 1.1.0",
  "hyper 1.4.1",
