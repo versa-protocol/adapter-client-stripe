@@ -1,44 +1,26 @@
 use base64::prelude::*;
 use hmac::Mac;
 use serde::{Deserialize, Serialize};
-
-use crate::{
-    encryption::encrypt_envelope,
-    model::{Envelope, Receiver},
+use versa::protocol::{
+    ReceiptRegistrationRequest, ReceiptRegistrationResponse, Receiver, TransactionHandles,
 };
 
-#[derive(Serialize)]
-pub struct TransactionHandles {
-    pub customer_email: Option<String>,
-}
-
-#[derive(Serialize)]
-pub struct ReceiptRegistrationRequest {
-    pub receipt_hash: u64,
-    pub schema_version: String,
-    pub handles: TransactionHandles,
-}
-
-#[derive(Deserialize)]
-pub struct ReceiptRegistrationResponse {
-    pub receivers: Vec<Receiver>,
-    pub receipt_id: String,
-    pub encryption_key: String,
-}
+use crate::{encryption::encrypt_envelope, model::Envelope};
 
 pub async fn register(
     client_id: &str,
     client_secret: &str,
-    customer_email: Option<String>,
+    customer_email: String,
     registration_hash: u64,
 ) -> Result<ReceiptRegistrationResponse, ()> {
     let registry_url = std::env::var("REGISTRY_URL").unwrap_or_default();
     let credential = format!("Basic {}:{}", client_id, client_secret);
 
     let payload = ReceiptRegistrationRequest {
-        receipt_hash: registration_hash,
+        transaction_id: None,
+        receipt_hash: Some(registration_hash),
         schema_version: "1.0.0".into(),
-        handles: TransactionHandles { customer_email },
+        handles: TransactionHandles::new().with_customer_email(customer_email),
     };
 
     let payload_json = serde_json::to_string(&payload).unwrap();

@@ -49,11 +49,3 @@ pub struct RoutingInfo {
     pub authorization_bin: Option<String>,
     pub authorization_par: Option<String>,
 }
-
-#[derive(Deserialize)]
-pub struct Receiver {
-    pub address: String,
-    pub client_id: String,
-    pub org_id: String,
-    pub secret: String,
-}

@@ -99,6 +99,14 @@ pub async fn target(
 
     let sender_client_secret = std::env::var("CLIENT_SECRET").unwrap_or_default();
 
+    let Some(customer_email) = customer_email else {
+        info!("FATAL: Cannot register receipt without customer email");
+        return Err((
+            http::StatusCode::BAD_REQUEST,
+            "Cannot register receipt without customer email".into(),
+        ));
+    };
+
     let response = crate::protocol::register(
         &sender_client_id,
         &sender_client_secret,

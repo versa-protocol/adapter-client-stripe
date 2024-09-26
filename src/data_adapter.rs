@@ -1,7 +1,7 @@
 use stripe::{Invoice, RecurringInterval};
 
-use versa_unstable_schema::receipt::{
-    AdjustmentType, Currency, Customer, Header, Interval, InvoiceLevelAdjustmentElement,
+use versa::receipt::{
+    Action, AdjustmentType, Currency, Customer, Header, Interval, InvoiceLevelAdjustmentElement,
     Itemization, Receipt, SubscriptionClass, SubscriptionItem, SubscriptionType,
 };
 
@@ -14,6 +14,7 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
                     email: obj.email,
                     name: obj.name.unwrap_or("".into()),
                     phone: obj.phone,
+                    metadata: Vec::new(),
                 })
             } else {
                 None
@@ -21,15 +22,25 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
         }
         None => None,
     };
+
+    let mut actions = Vec::<Action>::new();
+    if let Some(invoice_hosted_url) = invoice.hosted_invoice_url {
+        actions.push(Action {
+            name: "View in Stripe".into(),
+            url: invoice_hosted_url,
+        });
+    }
+
     Receipt {
-        actions: Some(vec![]),
+        schema_version: "1.3.0".into(),
+        actions: actions,
         header: Header {
             total: invoice.total.expect("Invoices must have a total"),
             currency: Currency::Usd, // invoice.currency.expect("Invoices must have an associated currency"),
             customer,
             location: None,
             mcc: None,
-            receipt_id: invoice.id.to_string(),
+            invoice_number: Some(invoice.id.to_string()),
             subtotal: invoice.subtotal.unwrap_or(
                 invoice
                     .amount_due
@@ -47,28 +58,12 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
             transit_route: Default::default(),
             subscription: Some(SubscriptionClass {
                 subscription_items: invoice_items_to_subscriptions(invoice.lines),
-                invoice_level_adjustments: None,
+                invoice_level_adjustments: Vec::new(),
             }),
             flight: Default::default(),
         },
-        payments: None,
-        version: "0.2.0".into(),
+        payments: Vec::new(),
     }
-
-    // SenderReceiptHeader {
-    //     id: invoice.id.to_string(),
-    //     schema_version: "1".into(),
-    //     currency: invoice
-    //         .currency
-    //         .and_then(|currency| Some(currency.to_string()))
-    //         .unwrap_or_default(),
-    //     amount: invoice.amount_due.unwrap_or_default(),
-    //     subtotal: invoice.subtotal.unwrap_or_default(),
-    //     date_time: invoice.created.unwrap_or_default(),
-    //     sender_client_id,
-    //     mcc: None,
-    //     third_party: None,
-    // }
 }
 
 fn invoice_items_to_subscriptions(
@@ -86,26 +81,29 @@ fn invoice_items_to_subscriptions(
                 current_period_end: period.end,
                 current_period_start: period.start,
                 description: i.description.unwrap_or("Missing Description".into()),
-                adjustments: i.discounts.and_then(|ds| {
-                    ds.into_iter()
-                        .map(|d| {
-                            if let Some(d) = d.into_object() {
-                                Some(InvoiceLevelAdjustmentElement {
-                                    amount: d.coupon.amount_off.unwrap_or_default(),
-                                    name: d.coupon.name,
-                                    adjustment_type: AdjustmentType::Discount,
-                                    // discount_type: match d.coupon.percent_off {
-                                    //     Some(_) => DiscountType::Percentage,
-                                    //     None => DiscountType::Fixed,
-                                    // },
-                                    rate: None,
-                                })
-                            } else {
-                                None
-                            }
-                        })
-                        .collect()
-                }),
+                adjustments: i
+                    .discounts
+                    .and_then(|ds| {
+                        ds.into_iter()
+                            .map(|d| {
+                                if let Some(d) = d.into_object() {
+                                    Some(InvoiceLevelAdjustmentElement {
+                                        amount: d.coupon.amount_off.unwrap_or_default(),
+                                        name: d.coupon.name,
+                                        adjustment_type: AdjustmentType::Discount,
+                                        // discount_type: match d.coupon.percent_off {
+                                        //     Some(_) => DiscountType::Percentage,
+                                        //     None => DiscountType::Fixed,
+                                        // },
+                                        rate: None,
+                                    })
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default(),
                 interval: price
                     .recurring
                     .as_ref()
@@ -114,9 +112,9 @@ fn invoice_items_to_subscriptions(
                     .recurring
                     .as_ref()
                     .and_then(|r| Some(r.interval_count as i64)), // should be u64 ?
-                metadata: None,
+                metadata: Vec::new(),
                 quantity: i.quantity.and_then(|q| Some(q as f64)),
-                taxes: None,
+                taxes: Vec::new(),
                 subscription_type: match price.type_.and_then(|t| {
                     Some(match t {
                         stripe::PriceType::OneTime => SubscriptionType::OneTime,
@@ -126,8 +124,8 @@ fn invoice_items_to_subscriptions(
                     Some(val) => val,
                     None => SubscriptionType::OneTime,
                 },
-                total: i.amount,
                 unit_cost: price.unit_amount.and_then(|c| Some(c as f64)),
+                subtotal: i.amount,
             })
         })
         .collect()
