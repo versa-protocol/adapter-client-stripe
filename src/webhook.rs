@@ -1,8 +1,7 @@
 use axum::extract::Request;
 use axum::http::HeaderMap;
 use stripe::{EventObject, EventType};
-
-use crate::protocol::encrypt_and_send;
+use versa::{client::VersaClient, client_sender::VersaSender, protocol::TransactionHandles};
 
 pub async fn target(
     headers: HeaderMap,
@@ -87,15 +86,7 @@ pub async fn target(
     let sender_client_id = std::env::var("CLIENT_ID").unwrap();
     info!("Received invoice for customer email: {:?}", customer_email);
 
-    // 3. Encrypt, hash, and register with Versa registry
-
-    let registration_hash = crate::encryption::generate_hash(&receipt);
-
-    // // Authorized receivers subscribed to this email or domain will be returned by the registry
-    // let routing_info = crate::model::RoutingInfo {
-    //     customer_email,
-    //     ..Default::default()
-    // };
+    // 3. Encrypt and register with Versa registry
 
     let sender_client_secret = std::env::var("CLIENT_SECRET").unwrap_or_default();
 
@@ -107,25 +98,33 @@ pub async fn target(
         ));
     };
 
-    let response = crate::protocol::register(
-        &sender_client_id,
-        &sender_client_secret,
-        customer_email,
-        registration_hash,
-    )
-    .await
-    .map_err(|e| {
-        info!("Registration failed: {:?}", e);
-        (
-            http::StatusCode::SERVICE_UNAVAILABLE,
-            format!("Registration failed: {:?}", e),
-        )
-    })?;
+    let registry_url = std::env::var("REGISTRY_URL").unwrap_or_default();
 
-    info!(
-        "Registration successful, received {} receivers",
-        response.receivers.len()
-    );
+    let Ok(client) = VersaClient::new(
+        registry_url,
+        sender_client_id.into(),
+        sender_client_secret.into(),
+    )
+    .sending_client("1.5.1".into()) else {
+        return Err((
+            http::StatusCode::SERVICE_UNAVAILABLE,
+            "Error creating Versa client".into(),
+        ));
+    };
+
+    let response = match client
+        .register_receipt(TransactionHandles::new().with_customer_email(customer_email))
+        .await
+    {
+        Ok(response) => response,
+        Err(e) => {
+            info!("Error registering receipt: {:?}", e);
+            return Err((
+                http::StatusCode::SERVICE_UNAVAILABLE,
+                format!("Error registering receipt: {:?}", e),
+            ));
+        }
+    };
 
     // 4. Send encrypted data to receiver endpoints returned by the registry
     for receiver in response.receivers {
@@ -133,14 +132,14 @@ pub async fn target(
             "Encrypting and sending envelope to receiver {} at {}",
             receiver.org_id, receiver.address
         );
-        match encrypt_and_send(
-            &receiver,
-            &sender_client_id,
-            response.receipt_id.clone(),
-            response.encryption_key.clone(),
-            &receipt,
-        )
-        .await
+        match client
+            .encrypt_and_send(
+                &receiver,
+                response.receipt_id.clone(),
+                response.encryption_key.clone(),
+                receipt.clone(),
+            )
+            .await
         {
             Ok(_) => info!("Successfully sent to receiver: {}", receiver.address),
             Err(e) => {

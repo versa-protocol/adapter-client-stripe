@@ -1,8 +1,10 @@
+use std::str::FromStr;
+
 use stripe::{Invoice, RecurringInterval};
 
 use versa::receipt::{
-    Action, AdjustmentType, Currency, Customer, Header, Interval, InvoiceLevelAdjustmentElement,
-    Itemization, Receipt, SubscriptionClass, SubscriptionItem, SubscriptionType,
+    Action, Adjustment, AdjustmentType, Currency, Customer, Header, Interval, Itemization, Receipt,
+    SchemaVersion, Subscription, SubscriptionItem, SubscriptionType,
 };
 
 pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
@@ -32,7 +34,7 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
     }
 
     Receipt {
-        schema_version: "1.3.0".into(),
+        schema_version: SchemaVersion::from_str("1.5.1").unwrap(),
         actions: actions,
         header: Header {
             total: invoice.total.expect("Invoices must have a total"),
@@ -49,6 +51,8 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
             third_party: None,
             invoiced_at: invoice.created.expect("Invoices must have a creation date"),
             paid: invoice.amount_paid.expect("Invoices must have been paid"),
+            invoice_asset_id: None,
+            receipt_asset_id: None,
         },
         itemization: Itemization {
             general: Default::default(),
@@ -56,7 +60,7 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
             ecommerce: Default::default(),
             car_rental: Default::default(),
             transit_route: Default::default(),
-            subscription: Some(SubscriptionClass {
+            subscription: Some(Subscription {
                 subscription_items: invoice_items_to_subscriptions(invoice.lines),
                 invoice_level_adjustments: Vec::new(),
             }),
@@ -87,7 +91,7 @@ fn invoice_items_to_subscriptions(
                         ds.into_iter()
                             .map(|d| {
                                 if let Some(d) = d.into_object() {
-                                    Some(InvoiceLevelAdjustmentElement {
+                                    Some(Adjustment {
                                         amount: d.coupon.amount_off.unwrap_or_default(),
                                         name: d.coupon.name,
                                         adjustment_type: AdjustmentType::Discount,
