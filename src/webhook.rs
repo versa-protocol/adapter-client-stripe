@@ -113,7 +113,10 @@ pub async fn target(
     };
 
     let response = match client
-        .register_receipt(TransactionHandles::new().with_customer_email(customer_email))
+        .register_receipt(
+            TransactionHandles::new().with_customer_email(customer_email),
+            None,
+        )
         .await
     {
         Ok(response) => response,
