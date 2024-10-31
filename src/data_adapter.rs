@@ -129,7 +129,7 @@ fn invoice_items_to_subscriptions(
                     None => SubscriptionType::OneTime,
                 },
                 unit_cost: price.unit_amount.and_then(|c| Some(c as f64)),
-                subtotal: i.amount,
+                amount: i.amount,
             })
         })
         .collect()
