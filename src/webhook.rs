@@ -98,19 +98,8 @@ pub async fn target(
         ));
     };
 
-    let registry_url = std::env::var("REGISTRY_URL").unwrap_or_default();
-
-    let Ok(client) = VersaClient::new(
-        registry_url,
-        sender_client_id.into(),
-        sender_client_secret.into(),
-    )
-    .sending_client("1.5.1".into()) else {
-        return Err((
-            http::StatusCode::SERVICE_UNAVAILABLE,
-            "Error creating Versa client".into(),
-        ));
-    };
+    let client = VersaClient::new(sender_client_id.into(), sender_client_secret.into())
+        .sending_client("1.7.0".into());
 
     let response = match client
         .register_receipt(

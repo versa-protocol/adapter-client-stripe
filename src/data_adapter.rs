@@ -3,8 +3,8 @@ use std::str::FromStr;
 use stripe::{Invoice, RecurringInterval};
 
 use versa::receipt::{
-    Action, Adjustment, AdjustmentType, Currency, Customer, Header, Interval, Itemization, Receipt,
-    SchemaVersion, Subscription, SubscriptionItem, SubscriptionType,
+    Action, Adjustment, AdjustmentType, Currency, Customer, Footer, Header, Interval, Itemization,
+    Receipt, SchemaVersion, Subscription, SubscriptionItem, SubscriptionType,
 };
 
 pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
@@ -35,7 +35,10 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
 
     Receipt {
         schema_version: SchemaVersion::from_str("1.5.1").unwrap(),
-        actions: actions,
+        footer: Footer {
+            actions,
+            supplemental_text: None,
+        },
         header: Header {
             total: invoice.total.expect("Invoices must have a total"),
             currency: Currency::Usd, // invoice.currency.expect("Invoices must have an associated currency"),
