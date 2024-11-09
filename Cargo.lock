@@ -2497,9 +2497,9 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "versa"
-version = "0.17.1"
+version = "0.17.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd3038d7fe22badaebf944bba0f7dba4f56fc4b1b41f18d73c222273c7a88870"
+checksum = "58829202c9d7963646e3bfd4eebbed998bc30eb8af90b20296ad6d6b5be79344"
 dependencies = [
  "aes-gcm-siv",
  "base64 0.22.1",
