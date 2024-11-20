@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "adapter-client-stripe"
-version = "1.7.0"
+version = "1.8.0"
 dependencies = [
  "aes-gcm-siv",
  "async-stripe",
@@ -2497,9 +2497,9 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 
 [[package]]
 name = "versa"
-version = "0.17.3"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "58829202c9d7963646e3bfd4eebbed998bc30eb8af90b20296ad6d6b5be79344"
+checksum = "9e4b79ef63bb250f4ee2562c7470df8bf75019dd1c163db92a939600ae4e340d"
 dependencies = [
  "aes-gcm-siv",
  "base64 0.22.1",

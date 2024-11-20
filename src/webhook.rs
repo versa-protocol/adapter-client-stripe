@@ -99,7 +99,12 @@ pub async fn target(
     };
 
     let client = VersaClient::new(sender_client_id.into(), sender_client_secret.into())
-        .sending_client("1.7.0".into());
+        .with_client_string(&format!(
+            "adapter-stripe/{}/{}",
+            env!("CARGO_PKG_VERSION").to_string(),
+            std::env::var("IMAGE_VERSION").unwrap_or("".into())
+        ))
+        .sending_client("1.8.0".into());
 
     let response = match client
         .register_receipt(
