@@ -22,5 +22,6 @@ RUN update-ca-certificates
 # Copy executable to the readied runner image
 FROM runner as service
 COPY --from=builder /usr/local/cargo/bin/adapter-client-stripe /usr/local/bin/adapter-client-stripe
+ENV IMAGE_VERSION="$IMAGE_DIGEST"
 EXPOSE 8000
 CMD ["adapter-client-stripe"]
