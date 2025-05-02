@@ -1,6 +1,6 @@
 use axum::extract::Request;
 use axum::http::HeaderMap;
-use stripe::{EventObject, EventType};
+use stripe_webhook::{EventObject, EventType, Webhook};
 use versa::{client::VersaClient, client_sender::VersaSender, protocol::TransactionHandles};
 
 pub async fn target(
@@ -54,14 +54,13 @@ pub async fn target(
 
     // 1. Receive Stripe 'invoice.paid' event
 
-    let event =
-        stripe::Webhook::construct_event(payload, &signature, &secret).map_err(|error| {
-            info!("Error validating Stripe event: {:?}", error);
-            (
-                http::StatusCode::UNAUTHORIZED,
-                format!("Error validating Stripe event: {:?}", error),
-            )
-        })?;
+    let event = Webhook::construct_event(payload, &signature, &secret).map_err(|error| {
+        info!("Error validating Stripe event: {:?}", error);
+        (
+            http::StatusCode::UNAUTHORIZED,
+            format!("Error validating Stripe event: {:?}", error),
+        )
+    })?;
 
     if event.type_ != EventType::InvoicePaid {
         info!("Unsupported event type: {}", event.type_);
@@ -71,7 +70,7 @@ pub async fn target(
         ));
     }
 
-    let EventObject::Invoice(invoice) = event.data.object else {
+    let EventObject::InvoicePaid(invoice) = event.data.object else {
         info!("Missing invoice data in event");
         return Err((
             http::StatusCode::BAD_REQUEST,
@@ -104,9 +103,9 @@ pub async fn target(
             env!("CARGO_PKG_VERSION").to_string(),
             std::env::var("IMAGE_VERSION").unwrap_or("".into())
         ))
-        .sending_client("1.8.0".into());
+        .sending_client("1.11.0".into());
 
-    let response = match client
+    let registration_response = match client
         .register_receipt(
             TransactionHandles::new().with_customer_email(customer_email),
             None,
@@ -122,23 +121,25 @@ pub async fn target(
             ));
         }
     };
+    let (encryption_key, summary, receivers) = registration_response.ready_for_delivery();
 
     // 4. Send encrypted data to receiver endpoints returned by the registry
-    for receiver in response.receivers {
+    for receiver in receivers {
+        let endpoint_url = receiver.endpoint_url.clone();
         info!(
             "Encrypting and sending envelope to receiver {} at {}",
             receiver.org_id, receiver.address
         );
         match client
             .encrypt_and_send(
-                &receiver,
-                response.receipt_id.clone(),
-                response.encryption_key.clone(),
+                receiver,
+                summary.clone(),
+                encryption_key.clone(),
                 receipt.clone(),
             )
             .await
         {
-            Ok(_) => info!("Successfully sent to receiver: {}", receiver.address),
+            Ok(_) => info!("Successfully sent to receiver: {}", endpoint_url),
             Err(e) => {
                 info!("Failed to send to receiver: {:?}", e)
             }
