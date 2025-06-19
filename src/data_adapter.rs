@@ -3,8 +3,9 @@ use std::str::FromStr;
 use stripe_shared::{Invoice, RecurringInterval};
 
 use versa::schema::receipt::{
-    Action, Adjustment, AdjustmentType, Currency, Customer, Footer, Header, Interval, Itemization,
-    Receipt, SchemaVersion, Subscription, SubscriptionItem, SubscriptionType,
+    Action, Adjustment, AdjustmentType, Currency, Customer, CustomerPhone, Footer, Header,
+    Interval, Itemization, Receipt, SchemaVersion, Subscription, SubscriptionItem,
+    SubscriptionType,
 };
 
 pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
@@ -15,8 +16,9 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
                     address: None, // obj.address,
                     email: obj.email,
                     name: obj.name.unwrap_or("".into()),
-                    phone: obj.phone,
-                    metadata: Vec::new(),
+                    phone: obj.phone.and_then(|p| CustomerPhone::from_str(&p).ok()),
+                    metadata: None,
+                    website: None,
                 })
             } else {
                 None
@@ -34,9 +36,9 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
     }
 
     Receipt {
-        schema_version: SchemaVersion::from_str("1.11.0").unwrap(),
+        schema_version: SchemaVersion::from_str("2.0.0").unwrap(),
         footer: Footer {
-            actions: actions,
+            actions: Some(actions),
             supplemental_text: Some("*Sent via Versa*".into()),
         },
         header: Header {
@@ -66,7 +68,7 @@ pub fn transform_stripe_invoice(invoice: Invoice) -> Receipt {
                     .into_iter()
                     .filter_map(|i| invoice_item_to_subscription(i))
                     .collect(),
-                invoice_level_adjustments: Vec::new(),
+                invoice_level_adjustments: None,
             }),
             flight: Default::default(),
         },
@@ -78,29 +80,30 @@ fn invoice_item_to_subscription(i: stripe_shared::InvoiceLineItem) -> Option<Sub
     let period = i.period;
     let Some(price) = i.price else { return None };
     Some(SubscriptionItem {
-        current_period_end: Some(period.end),
-        current_period_start: Some(period.start),
+        current_period_end_at: Some(period.end),
+        current_period_start_at: Some(period.start),
         description: i.description.unwrap_or("Missing Description".into()),
-        adjustments: i
-            .discounts
-            .into_iter()
-            .filter_map(|d| {
-                if let Some(d) = d.into_object() {
-                    Some(Adjustment {
-                        amount: d.coupon.amount_off.unwrap_or_default(),
-                        name: d.coupon.name,
-                        adjustment_type: AdjustmentType::Discount,
-                        // discount_type: match d.coupon.percent_off {
-                        //     Some(_) => DiscountType::Percentage,
-                        //     None => DiscountType::Fixed,
-                        // },
-                        rate: None,
-                    })
-                } else {
-                    None
-                }
-            })
-            .collect(),
+        adjustments: Some(
+            i.discounts
+                .into_iter()
+                .filter_map(|d| {
+                    if let Some(d) = d.into_object() {
+                        Some(Adjustment {
+                            amount: d.coupon.amount_off.unwrap_or_default(),
+                            name: d.coupon.name,
+                            adjustment_type: AdjustmentType::Discount,
+                            // discount_type: match d.coupon.percent_off {
+                            //     Some(_) => DiscountType::Percentage,
+                            //     None => DiscountType::Fixed,
+                            // },
+                            rate: None,
+                        })
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+        ),
         interval: price
             .recurring
             .as_ref()
@@ -109,9 +112,9 @@ fn invoice_item_to_subscription(i: stripe_shared::InvoiceLineItem) -> Option<Sub
             .recurring
             .as_ref()
             .and_then(|r| Some(r.interval_count as i64)), // should be u64 ?
-        metadata: Vec::new(),
+        metadata: None,
         quantity: i.quantity.and_then(|q| Some(q as f64)),
-        taxes: Vec::new(),
+        taxes: None,
         subscription_type: match price.type_ {
             stripe_shared::PriceType::OneTime => SubscriptionType::OneTime,
             stripe_shared::PriceType::Recurring => SubscriptionType::Recurring,

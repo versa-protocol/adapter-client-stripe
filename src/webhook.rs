@@ -103,7 +103,7 @@ pub async fn target(
             env!("CARGO_PKG_VERSION").to_string(),
             std::env::var("IMAGE_VERSION").unwrap_or("".into())
         ))
-        .sending_client("1.11.0".into());
+        .sending_client("2.0.0".into());
 
     let registration_response = match client
         .register_receipt(
