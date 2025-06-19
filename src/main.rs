@@ -6,11 +6,10 @@ use tracing::Level;
 #[macro_use]
 extern crate tracing;
 
-mod config;
-mod data_adapter;
-mod healthz;
-mod middleware;
-mod webhook;
+use adapter_client_stripe::{config, healthz, middleware, webhook};
+
+#[cfg(test)]
+mod tests;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

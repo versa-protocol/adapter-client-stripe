@@ -4,6 +4,7 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use tracing::info;
 
 fn log_inbound(uri: &str) {
     info!("Inbound {}", uri);

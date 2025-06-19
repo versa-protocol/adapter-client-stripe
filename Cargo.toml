@@ -3,6 +3,14 @@ name = "adapter-client-stripe"
 version = "1.11.0"
 edition = "2021"
 
+[lib]
+name = "adapter_client_stripe"
+path = "src/lib.rs"
+
+[[bin]]
+name = "adapter-client-stripe"
+path = "src/main.rs"
+
 [dependencies]
 aes-gcm-siv = "0.11.1"
 async-stripe-shared = { git = "https://github.com/arlyon/async-stripe", rev="7042ec24" }
@@ -29,3 +37,4 @@ versa = {version = "1.0.0", features = ["client_sender"]}
 [dev-dependencies]
 pretty_assertions = "1.3.0"
 rusty-hook = "0.11.2"
+tower = "0.5"
